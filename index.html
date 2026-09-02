@@ -15,24 +15,56 @@
   <body>
     <main class="app">
       <header class="hero">
-        <p class="eyebrow">Lista personal</p>
+        <p class="eyebrow">Organizador personal</p>
         <h1>Actividades</h1>
-        <p class="lede">Agrega una tarea, muévela cuando la empieces y márcala al terminarla.</p>
+        <p class="lede">Organiza tus pendientes personales y de trabajo sin perder de vista sus fechas.</p>
       </header>
 
       <form class="composer" id="add-form">
-        <label class="sr-only" for="task-input">Nueva actividad</label>
-        <input
-          id="task-input"
-          name="title"
-          type="text"
-          maxlength="140"
-          placeholder="Escribe una actividad…"
-          autocomplete="off"
-          required
-        />
+        <div class="field field-title">
+          <label for="task-input">Actividad</label>
+          <input
+            id="task-input"
+            name="title"
+            type="text"
+            maxlength="140"
+            placeholder="¿Qué necesitas hacer?"
+            autocomplete="off"
+            required
+          />
+        </div>
+        <div class="field">
+          <label for="task-tag">Tipo</label>
+          <select id="task-tag" name="tag">
+            <option value="personal">Personal</option>
+            <option value="trabajo">Trabajo</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="task-due">Fecha límite</label>
+          <input id="task-due" name="dueDate" type="date" required />
+        </div>
         <button type="submit">Agregar</button>
       </form>
+
+      <section class="toolbar" aria-label="Filtros de actividades">
+        <label class="search">
+          <span class="sr-only">Buscar actividades</span>
+          <input id="search-input" type="search" placeholder="Buscar actividades…" />
+        </label>
+        <select id="tag-filter" aria-label="Filtrar por tipo">
+          <option value="all">Todos los tipos</option>
+          <option value="personal">Personal</option>
+          <option value="trabajo">Trabajo</option>
+        </select>
+        <select id="date-filter" aria-label="Filtrar por fecha">
+          <option value="all">Todas las fechas</option>
+          <option value="overdue">Vencidas</option>
+          <option value="today">Para hoy</option>
+          <option value="week">Próximos 7 días</option>
+        </select>
+        <p id="result-summary" aria-live="polite"></p>
+      </section>
 
       <section class="board" aria-label="Tablero de actividades">
         <article class="column" data-status="todo">

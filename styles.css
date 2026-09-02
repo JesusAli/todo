@@ -64,24 +64,49 @@ body {
 }
 
 .composer {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 150px 170px auto;
+  align-items: end;
   gap: 10px;
   margin: 32px 0 28px;
-  padding: 10px;
+  padding: 16px;
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 16px;
   box-shadow: var(--shadow);
 }
 
-.composer input {
-  flex: 1;
-  border: 0;
-  background: transparent;
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.composer input,
+.composer select,
+.toolbar input,
+.toolbar select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
   font: inherit;
-  font-size: 1.05rem;
-  padding: 12px 14px;
+  padding: 10px 12px;
   outline: none;
+}
+
+.composer input:focus,
+.composer select:focus,
+.toolbar input:focus,
+.toolbar select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(47, 111, 78, 0.12);
 }
 
 .composer button,
@@ -97,6 +122,22 @@ body {
   border-radius: 12px;
   padding: 12px 18px;
   font-weight: 600;
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 160px 180px auto;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.toolbar p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .board {
@@ -148,15 +189,70 @@ body {
   background: #fff;
 }
 
-.task p {
+.task-title {
   margin: 0;
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
-.task.done p {
+.task.done .task-title {
   text-decoration: line-through;
   color: var(--muted);
+}
+
+.task.overdue {
+  border-color: #d7a09a;
+  background: #fffafa;
+}
+
+.task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.tag,
+.date {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.tag-personal {
+  color: #644a16;
+  background: #f6e8bf;
+}
+
+.tag-trabajo {
+  color: #244b72;
+  background: #dceaf7;
+}
+
+.date {
+  color: var(--muted);
+  background: #f2eee7;
+  font-weight: 400;
+}
+
+.date.due-today {
+  color: #7b4d08;
+  background: #fff0c8;
+}
+
+.date.due-overdue {
+  color: #922f27;
+  background: #f8deda;
+  font-weight: 600;
+}
+
+.created {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
 }
 
 .actions {
@@ -185,6 +281,15 @@ body {
 }
 
 @media (max-width: 800px) {
+  .composer,
+  .toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar p {
+    text-align: left;
+  }
+
   .board {
     grid-template-columns: 1fr;
   }

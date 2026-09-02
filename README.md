@@ -1,16 +1,19 @@
 # Actividades
 
-App web para anotar, mover y completar tareas. Se guarda en el navegador (no necesita servidor ni base de datos).
+App web para organizar tareas personales y de trabajo. Se guarda en el navegador (no necesita servidor ni base de datos).
 
 ## En vivo
 
-Cuando GitHub Pages termine de publicarla: https://jesusali.github.io/todo/
+https://jesusali.github.io/todo/
 
 ## Cómo usarla
 
-1. Escribe una actividad y pulsa **Agregar**.
+1. Escribe una actividad, selecciona **Personal** o **Trabajo** y asigna su fecha límite.
 2. Muévela a **En progreso** cuando la empieces.
 3. Márcala como **Hecho** al terminarla.
+4. Usa la búsqueda y los filtros para encontrar tareas por tipo o vencimiento.
+
+Cada actividad muestra automáticamente su fecha de creación. Las tareas vencidas se resaltan en rojo y las próximas se ordenan por fecha límite.
 
 ## Desarrollo local
 
