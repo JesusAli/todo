@@ -13,11 +13,47 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="app">
+    <section class="login-screen" id="login-screen">
+      <div class="login-card">
+        <p class="eyebrow">Acceso</p>
+        <h1>Inicia sesión</h1>
+        <p class="lede">
+          La sesión se guarda en una cookie. Las actividades viven en un Markdown privado de tu cuenta de GitHub (Gist).
+        </p>
+        <form id="login-form">
+          <div class="field">
+            <label for="github-token">Token de GitHub (alcance gist)</label>
+            <input
+              id="github-token"
+              name="token"
+              type="password"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="ghp_…"
+              required
+            />
+          </div>
+          <button type="submit">Entrar</button>
+          <p class="login-error" id="login-error" role="alert"></p>
+        </form>
+        <ol class="help">
+          <li>Abre <a href="https://github.com/settings/tokens/new?scopes=gist&description=Actividades%20TODO" target="_blank" rel="noreferrer">un token clásico</a>.</li>
+          <li>Marca solo el permiso <strong>gist</strong>.</li>
+          <li>Pégalo aquí. Caduca con la cookie a los 30 días o al cerrar sesión.</li>
+        </ol>
+      </div>
+    </section>
+
+    <main class="app" id="app-screen" hidden>
       <header class="hero">
         <p class="eyebrow">Organizador personal</p>
         <h1>Actividades</h1>
         <p class="lede">Organiza tus pendientes personales y de trabajo sin perder de vista sus fechas.</p>
+        <div class="session-bar">
+          <p>Sesión de <strong id="session-user">—</strong></p>
+          <p id="sync-status">Listo</p>
+          <button type="button" id="logout-button">Cerrar sesión</button>
+        </div>
       </header>
 
       <form class="composer" id="add-form">
@@ -81,6 +117,7 @@
         </article>
       </section>
     </main>
+    <script src="./markdown.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>

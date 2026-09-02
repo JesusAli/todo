@@ -1,4 +1,8 @@
-const STORAGE_KEY = "actividades-todo";
+const COOKIE_NAME = "actividades_session";
+const GIST_DESCRIPTION = "Actividades TODO — base de datos markdown";
+const GIST_FILENAME = "actividades.md";
+const SESSION_DAYS = 30;
+const LOCAL_CACHE_KEY = "actividades-todo";
 
 const lists = {
   todo: document.getElementById("list-todo"),
@@ -12,48 +16,182 @@ const filters = {
   date: document.getElementById("date-filter"),
 };
 
-function loadTasks() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return [
-        {
-          id: crypto.randomUUID(),
-          title: "Primera actividad",
-          status: "todo",
-          tag: "personal",
-          dueDate: todayISO(),
-          createdAt: new Date().toISOString(),
-        },
-      ];
-    }
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
+let tasks = [];
+let session = null;
+let saveTimer = null;
+let saving = false;
 
-    // Completa los campos de tareas guardadas con la versión anterior.
-    const migrationDate = new Date().toISOString();
-    const needsMigration = parsed.some(
-      (task) => !task.tag || task.dueDate === undefined || !task.createdAt,
-    );
-    const normalized = parsed.map((task) => ({
-      ...task,
-      tag: task.tag || "personal",
-      dueDate: task.dueDate || "",
-      createdAt: task.createdAt || migrationDate,
-    }));
-    if (needsMigration) saveTasks(normalized);
-    return normalized;
+function todayISO() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset();
+  return new Date(now.getTime() - offset * 60_000).toISOString().slice(0, 10);
+}
+
+function parseLocalDate(value) {
+  return new Date(`${value}T00:00:00`);
+}
+
+function formatDate(value) {
+  return parseLocalDate(value).toLocaleDateString("es-MX", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatDateTime(value) {
+  return new Date(value).toLocaleDateString("es-MX", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function cookieOptions() {
+  const secure = location.protocol === "https:" ? "; Secure" : "";
+  return `Path=/; Max-Age=${SESSION_DAYS * 24 * 60 * 60}; SameSite=Strict${secure}`;
+}
+
+function writeSessionCookie(data) {
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+  document.cookie = `${COOKIE_NAME}=${encodeURIComponent(encoded)}; ${cookieOptions()}`;
+}
+
+function readSessionCookie() {
+  const prefix = `${COOKIE_NAME}=`;
+  const raw = document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(prefix));
+  if (!raw) return null;
+  try {
+    const encoded = decodeURIComponent(raw.slice(prefix.length));
+    return JSON.parse(decodeURIComponent(escape(atob(encoded))));
+  } catch {
+    return null;
+  }
+}
+
+function clearSessionCookie() {
+  document.cookie = `${COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Strict`;
+}
+
+async function githubRequest(path, token, options = {}) {
+  const response = await fetch(`https://api.github.com${path}`, {
+    ...options,
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${token}`,
+      "X-GitHub-Api-Version": "2022-11-28",
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...options.headers,
+    },
+  });
+  if (response.status === 204) return null;
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(payload.message || `GitHub ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return payload;
+}
+
+async function findOrCreateGist(token, initialMarkdown) {
+  const gists = await githubRequest("/gists?per_page=100", token);
+  const existing = gists.find(
+    (gist) => gist.description === GIST_DESCRIPTION && gist.files && gist.files[GIST_FILENAME],
+  );
+  if (existing) return existing.id;
+
+  const created = await githubRequest("/gists", token, {
+    method: "POST",
+    body: JSON.stringify({
+      description: GIST_DESCRIPTION,
+      public: false,
+      files: {
+        [GIST_FILENAME]: { content: initialMarkdown || "# Actividades\n" },
+      },
+    }),
+  });
+  return created.id;
+}
+
+async function readMarkdown(token, gistId) {
+  const gist = await githubRequest(`/gists/${gistId}`, token);
+  return gist.files?.[GIST_FILENAME]?.content || "# Actividades\n";
+}
+
+async function writeMarkdown(token, gistId, markdown) {
+  await githubRequest(`/gists/${gistId}`, token, {
+    method: "PATCH",
+    body: JSON.stringify({
+      files: {
+        [GIST_FILENAME]: { content: markdown || "# Actividades\n" },
+      },
+    }),
+  });
+}
+
+function setStatus(message, kind = "") {
+  const el = document.getElementById("sync-status");
+  el.textContent = message;
+  el.dataset.kind = kind;
+}
+
+function showApp() {
+  document.getElementById("login-screen").hidden = true;
+  document.getElementById("app-screen").hidden = false;
+  document.getElementById("session-user").textContent = session.login;
+}
+
+function showLogin(message = "") {
+  document.getElementById("app-screen").hidden = true;
+  document.getElementById("login-screen").hidden = false;
+  document.getElementById("login-error").textContent = message;
+}
+
+function cachedTasks() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(LOCAL_CACHE_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
 }
 
-function saveTasks(tasks) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+function cacheTasks(next) {
+  localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(next));
 }
 
-function render(tasks) {
-  const visibleTasks = filterTasks(tasks);
+function scheduleSave(next) {
+  tasks = next;
+  cacheTasks(next);
+  render(next);
+  setStatus("Guardando en Markdown…", "pending");
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => persistMarkdown(next), 400);
+}
+
+async function persistMarkdown(next) {
+  if (!session) return;
+  saving = true;
+  try {
+    await writeMarkdown(session.token, session.gistId, tasksToMarkdown(next));
+    setStatus("Guardado en Markdown", "ok");
+  } catch (error) {
+    if (error.status === 401) {
+      logout("La sesión caducó. Vuelve a entrar.");
+      return;
+    }
+    setStatus("No se pudo guardar. Revisa la conexión.", "error");
+  } finally {
+    saving = false;
+  }
+}
+
+function render(current) {
+  const visibleTasks = filterTasks(current);
 
   Object.values(lists).forEach((list) => {
     list.innerHTML = "";
@@ -76,14 +214,14 @@ function render(tasks) {
     }
     items
       .sort((a, b) => sortByDueDate(a, b))
-      .forEach((task) => list.append(taskCard(task, tasks)));
+      .forEach((task) => list.append(taskCard(task)));
   });
 
-  const summary = document.getElementById("result-summary");
-  summary.textContent = `${visibleTasks.length} de ${tasks.length} actividades`;
+  document.getElementById("result-summary").textContent =
+    `${visibleTasks.length} de ${current.length} actividades`;
 }
 
-function taskCard(task, tasks) {
+function taskCard(task) {
   const item = document.createElement("li");
   const dueState = getDueState(task);
   item.className = `task${task.status === "done" ? " done" : ""}${
@@ -117,19 +255,17 @@ function taskCard(task, tasks) {
   actions.className = "actions";
 
   if (task.status !== "todo") {
-    actions.append(actionButton("Por hacer", () => moveTask(tasks, task.id, "todo")));
+    actions.append(actionButton("Por hacer", () => moveTask(task.id, "todo")));
   }
   if (task.status !== "doing") {
-    actions.append(actionButton("En progreso", () => moveTask(tasks, task.id, "doing")));
+    actions.append(actionButton("En progreso", () => moveTask(task.id, "doing")));
   }
   if (task.status !== "done") {
-    actions.append(actionButton("Hecho", () => moveTask(tasks, task.id, "done")));
+    actions.append(actionButton("Hecho", () => moveTask(task.id, "done")));
   }
 
   const remove = actionButton("Borrar", () => {
-    const next = tasks.filter((entry) => entry.id !== task.id);
-    saveTasks(next);
-    render(next);
+    scheduleSave(tasks.filter((entry) => entry.id !== task.id));
   });
   remove.classList.add("danger");
   actions.append(remove);
@@ -153,13 +289,11 @@ function actionButton(label, onClick) {
   return button;
 }
 
-function moveTask(tasks, id, status) {
-  const next = tasks.map((task) => (task.id === id ? { ...task, status } : task));
-  saveTasks(next);
-  render(next);
+function moveTask(id, status) {
+  scheduleSave(tasks.map((task) => (task.id === id ? { ...task, status } : task)));
 }
 
-function filterTasks(tasks) {
+function filterTasks(current) {
   const query = filters.search.value.trim().toLocaleLowerCase("es");
   const tag = filters.tag.value;
   const date = filters.date.value;
@@ -167,7 +301,7 @@ function filterTasks(tasks) {
   const weekEnd = new Date(today);
   weekEnd.setDate(today.getDate() + 7);
 
-  return tasks.filter((task) => {
+  return current.filter((task) => {
     if (query && !task.title.toLocaleLowerCase("es").includes(query)) return false;
     if (tag !== "all" && task.tag !== tag) return false;
     if (date === "all") return true;
@@ -194,57 +328,98 @@ function sortByDueDate(a, b) {
   return a.dueDate.localeCompare(b.dueDate);
 }
 
-function todayISO() {
-  const now = new Date();
-  const offset = now.getTimezoneOffset();
-  return new Date(now.getTime() - offset * 60_000).toISOString().slice(0, 10);
+function logout(message = "") {
+  clearSessionCookie();
+  session = null;
+  tasks = [];
+  showLogin(message);
 }
 
-function parseLocalDate(value) {
-  return new Date(`${value}T00:00:00`);
+async function restoreSession() {
+  const stored = readSessionCookie();
+  if (!stored?.token) {
+    showLogin();
+    return;
+  }
+  try {
+    await startSession(stored.token, stored.gistId);
+  } catch {
+    logout("La sesión no es válida. Vuelve a entrar.");
+  }
 }
 
-function formatDate(value) {
-  return parseLocalDate(value).toLocaleDateString("es-MX", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+async function startSession(token, knownGistId) {
+  const user = await githubRequest("/user", token);
+  const seed = tasksToMarkdown(cachedTasks());
+  const gistId = knownGistId || (await findOrCreateGist(token, seed));
+  const markdown = await readMarkdown(token, gistId);
+  const fromMarkdown = markdownToTasks(markdown);
+  tasks = fromMarkdown.length ? fromMarkdown : cachedTasks();
+  if (!fromMarkdown.length && tasks.length) {
+    await writeMarkdown(token, gistId, tasksToMarkdown(tasks));
+  }
+  session = { token, gistId, login: user.login };
+  writeSessionCookie(session);
+  cacheTasks(tasks);
+  showApp();
+  render(tasks);
+  setStatus("Guardado en Markdown", "ok");
 }
 
-function formatDateTime(value) {
-  return new Date(value).toLocaleDateString("es-MX", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+document.getElementById("login-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const token = document.getElementById("github-token").value.trim();
+  const button = event.currentTarget.querySelector("button");
+  const error = document.getElementById("login-error");
+  error.textContent = "";
+  if (!token) {
+    error.textContent = "Pega un token de GitHub con permiso gist.";
+    return;
+  }
+  button.disabled = true;
+  try {
+    await startSession(token);
+    event.currentTarget.reset();
+  } catch (err) {
+    error.textContent =
+      err.status === 401
+        ? "El token no es válido o no tiene permiso gist."
+        : "No se pudo iniciar sesión. Intenta de nuevo.";
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("logout-button").addEventListener("click", () => {
+  if (saving) return;
+  logout();
+});
 
 document.getElementById("add-form").addEventListener("submit", (event) => {
   event.preventDefault();
   const input = document.getElementById("task-input");
   const title = input.value.trim();
-  if (!title) return;
+  if (!title || !session) return;
 
-  const tasks = loadTasks();
-  tasks.unshift({
-    id: crypto.randomUUID(),
-    title,
-    status: "todo",
-    tag: document.getElementById("task-tag").value,
-    dueDate: document.getElementById("task-due").value,
-    createdAt: new Date().toISOString(),
-  });
-  saveTasks(tasks);
-  render(tasks);
+  scheduleSave([
+    {
+      id: crypto.randomUUID(),
+      title,
+      status: "todo",
+      tag: document.getElementById("task-tag").value,
+      dueDate: document.getElementById("task-due").value,
+      createdAt: new Date().toISOString(),
+    },
+    ...tasks,
+  ]);
   event.currentTarget.reset();
   setDefaultDueDate();
   input.focus();
 });
 
 Object.values(filters).forEach((control) => {
-  control.addEventListener("input", () => render(loadTasks()));
-  control.addEventListener("change", () => render(loadTasks()));
+  control.addEventListener("input", () => render(tasks));
+  control.addEventListener("change", () => render(tasks));
 });
 
 function setDefaultDueDate() {
@@ -252,4 +427,4 @@ function setDefaultDueDate() {
 }
 
 setDefaultDueDate();
-render(loadTasks());
+restoreSession();

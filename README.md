@@ -1,6 +1,8 @@
 # Actividades
 
-App web para organizar tareas personales y de trabajo. Se guarda en el navegador (no necesita servidor ni base de datos).
+App web para organizar tareas personales y de trabajo.
+
+La sesión se guarda en una **cookie**. Las actividades se guardan en un **Markdown privado** (Gist secreto de GitHub), para que las veas en cualquier navegador al iniciar sesión.
 
 ## En vivo
 
@@ -8,17 +10,9 @@ https://jesusali.github.io/todo/
 
 ## Cómo usarla
 
-1. Escribe una actividad, selecciona **Personal** o **Trabajo** y asigna su fecha límite.
-2. Muévela a **En progreso** cuando la empieces.
-3. Márcala como **Hecho** al terminarla.
-4. Usa la búsqueda y los filtros para encontrar tareas por tipo o vencimiento.
+1. Crea un [token clásico de GitHub](https://github.com/settings/tokens/new?scopes=gist&description=Actividades%20TODO) con el permiso **gist**.
+2. Inicia sesión en la app. Quedará una cookie por 30 días.
+3. Agrega actividades con tipo **Personal** o **Trabajo** y fecha límite.
+4. Muévelas entre **Por hacer**, **En progreso** y **Hecho**.
 
-Cada actividad muestra automáticamente su fecha de creación. Las tareas vencidas se resaltan en rojo y las próximas se ordenan por fecha límite.
-
-## Desarrollo local
-
-Abre `index.html` en el navegador, o sirve la carpeta:
-
-```bash
-python -m http.server 8080
-```
+La base de datos es el archivo `actividades.md` dentro de un Gist secreto. No se publica en el repositorio de GitHub Pages.

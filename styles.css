@@ -63,6 +63,104 @@ body {
   color: var(--muted);
 }
 
+.login-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.login-card {
+  width: min(440px, 100%);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 28px;
+}
+
+.login-card h1 {
+  font-family: Fraunces, Georgia, serif;
+  margin: 0 0 8px;
+}
+
+.login-card form {
+  display: grid;
+  gap: 12px;
+  margin: 22px 0 8px;
+}
+
+.login-card button,
+.session-bar button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.login-card button {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 18px;
+  font-weight: 600;
+}
+
+.login-error {
+  min-height: 1.2em;
+  margin: 0;
+  color: #922f27;
+  font-size: 0.88rem;
+}
+
+.help {
+  margin: 16px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.help a {
+  color: var(--accent);
+}
+
+.session-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-top: 18px;
+  padding: 10px 12px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.session-bar p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+#sync-status[data-kind="ok"] {
+  color: var(--accent);
+}
+
+#sync-status[data-kind="pending"] {
+  color: var(--doing);
+}
+
+#sync-status[data-kind="error"] {
+  color: #922f27;
+}
+
+.session-bar button {
+  margin-left: auto;
+  border: 1px solid var(--line);
+  background: #faf6ee;
+  border-radius: 999px;
+  padding: 6px 12px;
+}
+
 .composer {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) 150px 170px auto;
@@ -90,7 +188,8 @@ body {
 .composer input,
 .composer select,
 .toolbar input,
-.toolbar select {
+.toolbar select,
+.login-card input {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -104,7 +203,8 @@ body {
 .composer input:focus,
 .composer select:focus,
 .toolbar input:focus,
-.toolbar select:focus {
+.toolbar select:focus,
+.login-card input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(47, 111, 78, 0.12);
 }
