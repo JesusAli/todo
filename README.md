@@ -1,21 +1,21 @@
-# TODO
+# Actividades
 
-Lista de actividades. Marca cada tarea con `[x]` cuando la completes.
+App web para anotar, mover y completar tareas. Se guarda en el navegador (no necesita servidor ni base de datos).
 
-## Por hacer
+## En vivo
 
-- [ ] Primera actividad
+Cuando GitHub Pages termine de publicarla: https://jesusali.github.io/todo/
 
-## En progreso
+## Cómo usarla
 
-- [ ]
+1. Escribe una actividad y pulsa **Agregar**.
+2. Muévela a **En progreso** cuando la empieces.
+3. Márcala como **Hecho** al terminarla.
 
-## Hecho
+## Desarrollo local
 
-- [ ]
+Abre `index.html` en el navegador, o sirve la carpeta:
 
-## Cómo usarlo
-
-1. Agrega una línea nueva con `- [ ]` y el nombre de la actividad.
-2. Cuando empieces, muévela a **En progreso**.
-3. Cuando termines, cámbiala a `- [x]` y muévela a **Hecho**.
+```bash
+python -m http.server 8080
+```

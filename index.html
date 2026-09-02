@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Actividades</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Source+Sans+3:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="hero">
+        <p class="eyebrow">Lista personal</p>
+        <h1>Actividades</h1>
+        <p class="lede">Agrega una tarea, muévela cuando la empieces y márcala al terminarla.</p>
+      </header>
+
+      <form class="composer" id="add-form">
+        <label class="sr-only" for="task-input">Nueva actividad</label>
+        <input
+          id="task-input"
+          name="title"
+          type="text"
+          maxlength="140"
+          placeholder="Escribe una actividad…"
+          autocomplete="off"
+          required
+        />
+        <button type="submit">Agregar</button>
+      </form>
+
+      <section class="board" aria-label="Tablero de actividades">
+        <article class="column" data-status="todo">
+          <h2>Por hacer <span class="count" data-count="todo">0</span></h2>
+          <ul class="list" id="list-todo"></ul>
+        </article>
+        <article class="column" data-status="doing">
+          <h2>En progreso <span class="count" data-count="doing">0</span></h2>
+          <ul class="list" id="list-doing"></ul>
+        </article>
+        <article class="column" data-status="done">
+          <h2>Hecho <span class="count" data-count="done">0</span></h2>
+          <ul class="list" id="list-done"></ul>
+        </article>
+      </section>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>
