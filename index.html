@@ -36,11 +36,26 @@
           <button type="submit">Entrar</button>
           <p class="login-error" id="login-error" role="alert"></p>
         </form>
+        <button type="button" class="ghost" id="local-button">
+          Usar solo en este navegador
+        </button>
         <ol class="help">
-          <li>Abre <a href="https://github.com/settings/tokens/new?scopes=gist&description=Actividades%20TODO" target="_blank" rel="noreferrer">un token clásico</a>.</li>
-          <li>Marca solo el permiso <strong>gist</strong>.</li>
-          <li>Pégalo aquí. Caduca con la cookie a los 30 días o al cerrar sesión.</li>
+          <li>
+            Abre
+            <a
+              href="https://github.com/settings/tokens/new?scopes=gist&description=Actividades%20TODO"
+              target="_blank"
+              rel="noreferrer"
+              >un token clásico</a
+            >
+            (empieza con <code>ghp_</code>).
+          </li>
+          <li>Marca la casilla <strong>gist</strong> y genera el token.</li>
+          <li>Pégalo aquí. La cookie dura 30 días.</li>
         </ol>
+        <p class="note">
+          Los tokens «fine-grained» (<code>github_pat_</code>) no funcionan: GitHub no les da acceso a Gists.
+        </p>
       </div>
     </section>
 

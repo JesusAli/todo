@@ -110,6 +110,31 @@ body {
   margin: 0;
   color: #922f27;
   font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.login-card .ghost {
+  width: 100%;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  font-weight: 400;
+}
+
+.note {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.login-card code {
+  background: #f2eee7;
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-size: 0.86em;
 }
 
 .help {

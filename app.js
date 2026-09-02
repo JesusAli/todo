@@ -40,7 +40,9 @@ function formatDate(value) {
 }
 
 function formatDateTime(value) {
-  return new Date(value).toLocaleDateString("es-MX", {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "sin fecha";
+  return date.toLocaleDateString("es-MX", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -143,6 +145,9 @@ function showApp() {
   document.getElementById("login-screen").hidden = true;
   document.getElementById("app-screen").hidden = false;
   document.getElementById("session-user").textContent = session.login;
+  document.getElementById("logout-button").textContent = session.local
+    ? "Iniciar sesión"
+    : "Cerrar sesión";
 }
 
 function showLogin(message = "") {
@@ -154,10 +159,23 @@ function showLogin(message = "") {
 function cachedTasks() {
   try {
     const parsed = JSON.parse(localStorage.getItem(LOCAL_CACHE_KEY) || "[]");
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? parsed.map(normalizeTask) : [];
   } catch {
     return [];
   }
+}
+
+// Las tareas guardadas antes de las etiquetas y fechas no traen todos los campos.
+function normalizeTask(task) {
+  const created = new Date(task.createdAt);
+  return {
+    id: task.id || crypto.randomUUID(),
+    title: task.title || "",
+    status: ["todo", "doing", "done"].includes(task.status) ? task.status : "todo",
+    tag: task.tag === "trabajo" ? "trabajo" : "personal",
+    dueDate: task.dueDate || "",
+    createdAt: Number.isNaN(created.getTime()) ? new Date().toISOString() : task.createdAt,
+  };
 }
 
 function cacheTasks(next) {
@@ -168,13 +186,17 @@ function scheduleSave(next) {
   tasks = next;
   cacheTasks(next);
   render(next);
+  if (session?.local) {
+    setStatus("Guardado solo en este navegador", "");
+    return;
+  }
   setStatus("Guardando en Markdown…", "pending");
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => persistMarkdown(next), 400);
 }
 
 async function persistMarkdown(next) {
-  if (!session) return;
+  if (!session || session.local) return;
   saving = true;
   try {
     await writeMarkdown(session.token, session.gistId, tasksToMarkdown(next));
@@ -348,7 +370,21 @@ async function restoreSession() {
   }
 }
 
+function startLocalSession() {
+  session = { local: true, login: "este navegador" };
+  tasks = cachedTasks();
+  cacheTasks(tasks);
+  showApp();
+  render(tasks);
+  setStatus("Guardado solo en este navegador", "");
+}
+
 async function startSession(token, knownGistId) {
+  if (token.startsWith("github_pat_")) {
+    const error = new Error("fine-grained token");
+    error.code = "fine-grained";
+    throw error;
+  }
   const user = await githubRequest("/user", token);
   const seed = tasksToMarkdown(cachedTasks());
   const gistId = knownGistId || (await findOrCreateGist(token, seed));
@@ -381,13 +417,30 @@ document.getElementById("login-form").addEventListener("submit", async (event) =
     await startSession(token);
     event.currentTarget.reset();
   } catch (err) {
-    error.textContent =
-      err.status === 401
-        ? "El token no es válido o no tiene permiso gist."
-        : "No se pudo iniciar sesión. Intenta de nuevo.";
+    error.textContent = loginErrorMessage(err);
   } finally {
     button.disabled = false;
   }
+});
+
+function loginErrorMessage(err) {
+  if (err.code === "fine-grained") {
+    return "Ese token es «fine-grained» y GitHub no le permite usar Gists. Crea un token clásico con permiso gist.";
+  }
+  if (err.status === 401) {
+    return "El token no es válido o ya caducó.";
+  }
+  if (err.status === 403 || err.status === 404) {
+    return "El token no tiene el permiso gist. Créalo de nuevo marcando esa casilla.";
+  }
+  if (err.message === "Failed to fetch") {
+    return "No hubo conexión con GitHub. Revisa tu red o si algo bloquea api.github.com.";
+  }
+  return `No se pudo iniciar sesión: ${err.message}`;
+}
+
+document.getElementById("local-button").addEventListener("click", () => {
+  startLocalSession();
 });
 
 document.getElementById("logout-button").addEventListener("click", () => {
